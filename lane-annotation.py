@@ -3,7 +3,7 @@ import numpy as np
 # import matplotlib.pyplot as plt
 
 # Set the top point of the region of interest as a fraction of the frame (measured from the top)
-top_point_multiplier = 0.5
+top_point_multiplier = 0.33
 
 # Find edges in a frame using canny edge detection
 def detectEdges(frame):
@@ -80,10 +80,15 @@ def findLaneLines(frame_edges):
         left_line = calculateEndCoordinates(frame_edges, left_avg)
         right_line = calculateEndCoordinates(frame_edges, right_avg)
         coords = np.array([left_line, right_line])
+        # Calculate steering value based on centers of lines
+        left_line_center = (left_line[0] + left_line[2])/2
+        right_line_center = (right_line[0] + right_line[2])/2
+        steer = ((left_line_center + right_line_center)/2) - (frame_edges.shape[1]/2);
     else:
         coords = np.array([[], []])
+        steer = 0
     # Return the endpoint coords of the left and right lines
-    return coords
+    return coords, steer
 
 # Draw overlay lines on a frame
 def drawLines(frame, line_coords, color = (0, 255, 0)):
@@ -96,6 +101,14 @@ def drawLines(frame, line_coords, color = (0, 255, 0)):
             cv.line(overlay, (x1, y1), (x2, y2), color, 5)
     frame_overlay = cv.addWeighted(frame, 0.9, overlay, 1, 1)
     return frame_overlay
+    
+def drawText(frame, text):
+    # Gets the dimensions of the frame
+    height = frame.shape[0]
+    width = frame.shape[1]
+    # Add text
+    font = cv.FONT_HERSHEY_SIMPLEX
+    cv.putText(frame, str(text), (5,height-5), font, 1, (0,255,0), 2, cv.LINE_AA)
 
 # Resize a frame by a scaling factor
 def resizeFrame(frame, scale_factor):
@@ -123,12 +136,15 @@ while (cap.isOpened()):
     
     try:
         # Find lane lines
-        line_coords = findLaneLines(frame_edges_crop)        
+        line_coords, steer = findLaneLines(frame_edges_crop)        
         # Overlay detected lane lines on frame
         frame_overlay = drawLines(frame_overlay, line_coords)
     except:
-        pass
-                
+        steer = "error"
+        
+    # Print steering value
+    drawText(frame_overlay, steer)
+
     # Open a new window and display the output frame
     cv.imshow("output", resizeFrame(frame_overlay, 0.8))
 
