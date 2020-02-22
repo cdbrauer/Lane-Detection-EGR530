@@ -93,26 +93,40 @@ def findLaneLines(frame_edges, top_point_pos):
     # Return the endpoint coords of the left and right lines
     return coords, steer
 
-# Draw overlay lines on a frame
+# Draw lines on a frame
 def drawLines(frame, line_coords, color = (0,255,0)):
-    # Creates an image filled with zero intensities with the same dimensions as the frame
-    overlay = np.zeros_like(frame)
-    # Checks if any lines are detected
+    # Check if any lines are detected
     if line_coords is not None:
         for x1, y1, x2, y2 in line_coords:
-            # Draws lines between two coordinates with green color and 5 thickness
-            cv.line(overlay, (x1, y1), (x2, y2), color, 5)
-    frame_overlay = cv.addWeighted(frame, 0.9, overlay, 1, 1)
-    return frame_overlay
+            # Draw lines between two coordinates with color and 5 thickness
+            cv.line(frame, (x1, y1), (x2, y2), color, 5)
+    return frame
 
-# Draw overlay text on a frame
+# Draw text on a frame
 def drawText(frame, text, pos = 5, color = (0,255,0)):
-    # Gets the dimensions of the frame
+    # Get the dimensions of the frame
     height = frame.shape[0]
-    # width = frame.shape[1]
     # Add text
     font = cv.FONT_HERSHEY_SIMPLEX
     cv.putText(frame, str(text), (5,height-pos), font, 1, color, 2, cv.LINE_AA)
+    return frame
+
+# Draw a small pointer at the bottom of a frame
+def drawPointer(frame, x_pos, color = (0,255,0)):
+    # Get the dimensions of the frame
+    height = frame.shape[0]
+    cv.line(frame, (int(x_pos), height), (int(x_pos), round(0.95*height)), color, 5)
+    return frame
+
+def initOverlay(frame):
+    # Create an image filled with zero intensities with the same dimensions as the frame
+    overlay = np.zeros_like(frame)
+    return overlay
+
+def addOverlay(frame, overlay):
+    frame_overlay = np.zeros_like(frame)
+    cv.addWeighted(overlay, 0.9, frame, 1, 0, frame_overlay)
+    return frame_overlay
 
 # Resize a frame by a scaling factor
 def resizeFrame(frame, scale_factor):
