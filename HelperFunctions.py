@@ -3,8 +3,13 @@ import numpy as np
 
 # Find edges in a frame using canny edge detection
 def detectEdges(frame):
-    # Converts frame to grayscale because we only need the luminance channel for detecting edges - less computationally expensive
-    gray = cv.cvtColor(frame, cv.COLOR_RGB2GRAY)
+    try:
+        # Converts frame to grayscale because we only need the luminance channel for detecting edges - less computationally expensive
+        gray = cv.cvtColor(frame, cv.COLOR_RGB2GRAY)
+    except:
+        # Frame is already grayscale
+        gray = frame
+        pass
     # Applies a 5x5 gaussian blur with deviation of 0 to frame - not mandatory since Canny will do this for us
     blur = cv.GaussianBlur(gray, (5, 5), 0)
     # Applies Canny edge detector with minVal of 50 and maxVal of 150
@@ -64,8 +69,8 @@ def findLaneLines(frame_edges, top_point_pos):
             parameters = np.polyfit((x1, x2), (y1, y2), 1)
             slope = parameters[0]
             y_intercept = parameters[1]
-            # If slope is in the expected range (30deg to 70deg)
-            if (abs(slope) > 0.6) and (abs(slope) < 2.7):
+            # If slope is in the expected range (20deg to 70deg)
+            if (abs(slope) > 0.4) and (abs(slope) < 2.7):
                 # If slope is negative, the line is to the left of the lane, and otherwise, the line is to the right of the lane
                 if slope < 0:
                     left.append((slope, y_intercept))
@@ -89,7 +94,7 @@ def findLaneLines(frame_edges, top_point_pos):
     return coords, steer
 
 # Draw overlay lines on a frame
-def drawLines(frame, line_coords, color = (0, 255, 0)):
+def drawLines(frame, line_coords, color = (0,255,0)):
     # Creates an image filled with zero intensities with the same dimensions as the frame
     overlay = np.zeros_like(frame)
     # Checks if any lines are detected
@@ -101,13 +106,13 @@ def drawLines(frame, line_coords, color = (0, 255, 0)):
     return frame_overlay
 
 # Draw overlay text on a frame
-def drawText(frame, text):
+def drawText(frame, text, pos = 5, color = (0,255,0)):
     # Gets the dimensions of the frame
     height = frame.shape[0]
     # width = frame.shape[1]
     # Add text
     font = cv.FONT_HERSHEY_SIMPLEX
-    cv.putText(frame, str(text), (5,height-5), font, 1, (0,255,0), 2, cv.LINE_AA)
+    cv.putText(frame, str(text), (5,height-pos), font, 1, color, 2, cv.LINE_AA)
 
 # Resize a frame by a scaling factor
 def resizeFrame(frame, scale_factor):
