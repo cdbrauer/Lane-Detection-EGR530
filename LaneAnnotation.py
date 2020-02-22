@@ -4,7 +4,7 @@
 from HelperFunctions import *
 
 # Set the top point of the region of interest as a fraction of the frame (measured from the top)
-top_point_multiplier = 0.6
+top_point_multiplier = 0.25
 
 # Set the rate at which lane positions will update
 lane_update_rate = 0.4
@@ -16,8 +16,8 @@ steering_value_2 = 0
 lane_coords_2 = np.array([[0,0,0,0], [0,0,0,0]])
 
 # The video feed is read in as a VideoCapture object
-cap = cv.VideoCapture("input2.mp4")
-# cap = cv.VideoCapture(0)
+# cap = cv.VideoCapture("input2.mp4")
+cap = cv.VideoCapture(0)
 
 while cap.isOpened():
     # Get current image
@@ -33,7 +33,7 @@ while cap.isOpened():
     img_recolor = img_yellow + img_white
 
     # Show recolored image
-    cv.imshow("Recolored Frame", resizeFrame(img_recolor, 0.8))
+    # cv.imshow("Recolored Frame", resizeFrame(img_recolor, 0.8))
 
     # Apply edge detection
     img_edges = detectEdges(img)
