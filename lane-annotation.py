@@ -68,12 +68,14 @@ def findLaneLines(frame_edges):
             parameters = np.polyfit((x1, x2), (y1, y2), 1)
             slope = parameters[0]
             y_intercept = parameters[1]
-            # If slope is negative, the line is to the left of the lane, and otherwise, the line is to the right of the lane
-            if slope < 0:
-                left.append((slope, y_intercept))
-            else:
-                right.append((slope, y_intercept))
-        # Averages out all the values for left and right into a single slope and y-intercept value for each line
+            # If slope is in the expected range (30deg to 70deg)
+            if (abs(slope) > 0.6) and (abs(slope) < 2.7):
+                # If slope is negative, the line is to the left of the lane, and otherwise, the line is to the right of the lane
+                if slope < 0:
+                    left.append((slope, y_intercept))
+                else:
+                    right.append((slope, y_intercept))
+        # Average out all the values for left and right into a single slope and y-intercept value for each line
         left_avg = np.average(left, axis = 0)
         right_avg = np.average(right, axis = 0)
         # Calculates the x1, y1, x2, y2 coordinates for the left and right lines
