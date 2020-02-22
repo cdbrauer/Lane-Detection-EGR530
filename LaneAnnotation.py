@@ -6,6 +6,15 @@ from HelperFunctions import *
 # Set the top point of the region of interest as a fraction of the frame (measured from the top)
 top_point_multiplier = 0.6
 
+# Set the rate at which lane positions will update
+lane_update_rate = 0.4
+
+# Variables to store coords of detected lane lines from current and previous iteration
+steering_value = 0
+lane_coords = np.array([[0,0,0,0], [0,0,0,0]])
+steering_value_2 = 0
+lane_coords_2 = np.array([[0,0,0,0], [0,0,0,0]])
+
 # The video feed is read in as a VideoCapture object
 cap = cv.VideoCapture("input2.mp4")
 # cap = cv.VideoCapture(0)
@@ -42,11 +51,12 @@ while cap.isOpened():
     # Geometry only
     try:
         # Find lane lines
-        lane_line_coords, steering_value = findLaneLines(img_edges_crop, top_point_multiplier)
-        # Draw detected lane lines and steering value
-        drawLines(overlay, lane_line_coords, (0, 255, 0))
-        drawText(overlay, "G: " + str(steering_value), 50, (0, 255, 0))
-        drawPointer(overlay, midpoint+steering_value, (0, 255, 0))
+        lane_coords_new, steering_value_new = findLaneLines(img_edges_crop, top_point_multiplier)
+        # Update lane line coords using new measurement
+        lane_coords = lane_update_rate*lane_coords_new + (1-lane_update_rate)*lane_coords
+        steering_value = lane_update_rate*steering_value_new + (1-lane_update_rate)*steering_value
+        # Draw steering value
+        drawText(overlay, "G: " + str(int(steering_value)), 50, (0, 255, 0))
     except:
         # If lane lines are not found
         drawText(overlay, "G: error", 50, (0, 255, 0))
@@ -54,14 +64,21 @@ while cap.isOpened():
     # Geometry + color
     try:
         # Find lane lines
-        lane_line_coords_2, steering_value_2 = findLaneLines(img_recolor_edges_crop, top_point_multiplier)
-        # Draw detected lane lines and steering value
-        drawLines(overlay, lane_line_coords_2, (0, 255, 255))
-        drawText(overlay, "C: " + str(steering_value_2), 10, (0, 255, 255))
-        drawPointer(overlay, midpoint+steering_value_2, (0, 255, 255))
+        lane_coords_2_new, steering_value_2_new = findLaneLines(img_recolor_edges_crop, top_point_multiplier)
+        # Update lane line coords using new measurement
+        lane_coords_2 = lane_update_rate*lane_coords_2_new + (1-lane_update_rate)* lane_coords_2
+        steering_value_2 = lane_update_rate*steering_value_2_new + (1-lane_update_rate)*steering_value_2
+        # Draw steering value
+        drawText(overlay, "C: " + str(int(steering_value_2)), 10, (0, 255, 255))
     except:
         # If lane lines are not found
         drawText(overlay, "C: error", 10, (0, 255, 255))
+
+    # Draw detected lane lines
+    drawLines(overlay, lane_coords, (0, 255, 0))
+    drawPointer(overlay, midpoint + steering_value, (0, 255, 0))
+    drawLines(overlay, lane_coords_2, (0, 255, 255))
+    drawPointer(overlay, midpoint+steering_value_2, (0, 255, 255))
 
     # Open a new window and display the output image with overlay
     frame_overlay = addOverlay(img, overlay)

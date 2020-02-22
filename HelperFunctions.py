@@ -94,16 +94,16 @@ def findLaneLines(frame_edges, top_point_pos):
     return coords, steer
 
 # Draw lines on a frame
-def drawLines(frame, line_coords, color = (0,255,0)):
+def drawLines(frame, line_coords, color = (255,0,0)):
     # Check if any lines are detected
     if line_coords is not None:
         for x1, y1, x2, y2 in line_coords:
             # Draw lines between two coordinates with color and 5 thickness
-            cv.line(frame, (x1, y1), (x2, y2), color, 5)
+            cv.line(frame, (int(x1), int(y1)), (int(x2), int(y2)), color, 5)
     return frame
 
 # Draw text on a frame
-def drawText(frame, text, pos = 5, color = (0,255,0)):
+def drawText(frame, text, pos = 5, color = (255,0,0)):
     # Get the dimensions of the frame
     height = frame.shape[0]
     # Add text
@@ -112,7 +112,7 @@ def drawText(frame, text, pos = 5, color = (0,255,0)):
     return frame
 
 # Draw a small pointer at the bottom of a frame
-def drawPointer(frame, x_pos, color = (0,255,0)):
+def drawPointer(frame, x_pos, color = (255,0,0)):
     # Get the dimensions of the frame
     height = frame.shape[0]
     cv.line(frame, (int(x_pos), height), (int(x_pos), round(0.95*height)), color, 5)
