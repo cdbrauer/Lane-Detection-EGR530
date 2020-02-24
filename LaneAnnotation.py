@@ -3,8 +3,9 @@
 # Import helper functions file
 from HelperFunctions import *
 
-# Set the top point of the region of interest as a fraction of the frame (measured from the top)
+# Set the top and bottom points of the region of interest as a fraction of the frame (measured from the top)
 top_point_multiplier = 0.25
+bottom_point_multiplier = 0.9
 
 # Set the rate at which lane positions will update
 lane_update_rate = 0.4
@@ -40,9 +41,8 @@ while cap.isOpened():
     img_recolor_edges = detectEdges(img_recolor)
 
     # Apply crop
-    img_edges_crop, crop_boundary_coords = polygonMask(img_edges, top_point_multiplier)
-    img_recolor_edges_crop, crop_boundary_coords_2 = polygonMask(img_recolor_edges, top_point_multiplier)
-    midpoint = crop_boundary_coords[0][2]
+    img_edges_crop, crop_boundary_coords, midpoint = polygonMask(img_edges, top_point_multiplier, bottom_point_multiplier)
+    img_recolor_edges_crop, crop_boundary_coords_2, midpoint_2 = polygonMask(img_recolor_edges, top_point_multiplier, bottom_point_multiplier)
 
     # Draw crop boundary on overlay
     drawLines(overlay, crop_boundary_coords, (0, 0, 255))

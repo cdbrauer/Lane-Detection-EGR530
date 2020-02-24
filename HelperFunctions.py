@@ -18,12 +18,18 @@ def detectEdges(frame):
     return frame_edges
 
 # Crop a frame to the region of interest
-def polygonMask(frame, top_point_pos):
+def polygonMask(frame, top_point_pos, bottom_point_pos):
     # Gets the dimensions of the frame
     height = frame.shape[0]
     width = frame.shape[1]
     # Creates a triangular polygon for the mask defined by three (x, y) coordinates
-    polygons = np.array([[(0, height), (width, height), (round(width*0.5), round(height * top_point_pos))]])
+    polygons = np.array([[
+        (0, height),
+        (width, height),
+        (width, round(height * bottom_point_pos)),
+        (round(width*0.5), round(height * top_point_pos)),
+        (0, round(height * bottom_point_pos))
+    ]])
     # Creates an image filled with zero intensities with the same dimensions as the frame
     mask = np.zeros_like(frame)
     # Allows the mask to be filled with values of 1 and the other areas to be filled with values of 0
@@ -31,9 +37,17 @@ def polygonMask(frame, top_point_pos):
     # A bitwise and operation between the mask and frame keeps only the triangular area of the frame
     frame_cropped = cv.bitwise_and(frame, mask)
     # Get the coords of the crop region edges
-    edge_coords = np.array([[0, height, round(width*0.5), round(height * top_point_pos)], [width, height, round(width * 0.5), round(height * top_point_pos)]])
+    edge_coords = np.array([
+        [0, height, width, height],
+        [width, height, width, round(height * bottom_point_pos)],
+        [width, round(height * bottom_point_pos), round(width * 0.5), round(height * top_point_pos)],
+        [round(width * 0.5), round(height * top_point_pos), 0, round(height * bottom_point_pos)],
+        [0, round(height * bottom_point_pos), 0, height],
+    ])
+    # Get the midpoint of the mask
+    midpoint = round(width * 0.5)
     # Return frame with the mask applied
-    return frame_cropped, edge_coords
+    return frame_cropped, edge_coords, midpoint
 
 # Calculate the end coordinates of a line given its slope and y intercept
 def calculateEndCoordinates(frame, parameters, top_point_pos):
