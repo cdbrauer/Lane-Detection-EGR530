@@ -6,6 +6,11 @@
 
 Program to detect lane lines in a webcam feed and highlight them
 
+- Red - search area
+- Green - lines detected by geometry only
+- Yellow - lines detected by geometry + color
+- Blue - lines identified by combining green and yellow
+
 ## HelperFunctions.py
 
 Funtions for detecting lane lines and drawing a video overlay
