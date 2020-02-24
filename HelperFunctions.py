@@ -6,10 +6,9 @@ def detectEdges(frame):
     try:
         # Converts frame to grayscale because we only need the luminance channel for detecting edges - less computationally expensive
         gray = cv.cvtColor(frame, cv.COLOR_RGB2GRAY)
-    except:
+    except cv.error:
         # Frame is already grayscale
         gray = frame
-        pass
     # Applies a 5x5 gaussian blur with deviation of 0 to frame - not mandatory since Canny will do this for us
     blur = cv.GaussianBlur(gray, (5, 5), 0)
     # Applies Canny edge detector with minVal of 50 and maxVal of 150
@@ -90,22 +89,24 @@ def findLaneLines(frame_edges, top_point_pos):
                     left.append((slope, y_intercept))
                 else:
                     right.append((slope, y_intercept))
-        # Average out all the values for left and right into a single slope and y-intercept value for each line
-        left_avg = np.average(left, axis = 0)
-        right_avg = np.average(right, axis = 0)
-        # Calculates the x1, y1, x2, y2 coordinates for the left and right lines
-        left_line = calculateEndCoordinates(frame_edges, left_avg, top_point_pos)
-        right_line = calculateEndCoordinates(frame_edges, right_avg, top_point_pos)
-        coords = np.array([left_line, right_line])
-        # Calculate steering value based on centers of lines
-        left_line_center = (left_line[0] + left_line[2])/2
-        right_line_center = (right_line[0] + right_line[2])/2
-        steer = ((left_line_center + right_line_center)/2) - (frame_edges.shape[1]/2)
+        if (len(left) > 0) and (len(right) > 0):
+            # Average out all the values for left and right into a single slope and y-intercept value for each line
+            left_avg = np.average(left, axis = 0)
+            right_avg = np.average(right, axis = 0)
+            # Calculates the x1, y1, x2, y2 coordinates for the left and right lines
+            left_line = calculateEndCoordinates(frame_edges, left_avg, top_point_pos)
+            right_line = calculateEndCoordinates(frame_edges, right_avg, top_point_pos)
+            coords = np.array([left_line, right_line])
+            # Calculate steering value based on centers of lines
+            left_line_center = (left_line[0] + left_line[2])/2
+            right_line_center = (right_line[0] + right_line[2])/2
+            steer = ((left_line_center + right_line_center)/2) - (frame_edges.shape[1]/2)
+            # Return the endpoint coords of the left and right lines
+            return coords, steer
+        else:
+            raise ValueError("No lines in slope range")
     else:
-        coords = np.array([[], []])
-        steer = 0
-    # Return the endpoint coords of the left and right lines
-    return coords, steer
+        raise ValueError("No lines in frame")
 
 # Draw lines on a frame
 def drawLines(frame, line_coords, color = (255,0,0)):

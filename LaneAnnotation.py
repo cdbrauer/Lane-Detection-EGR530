@@ -2,6 +2,10 @@
 
 # Import helper functions file
 from HelperFunctions import *
+import warnings
+
+# Suppress output from polyfit warning
+warnings.simplefilter('ignore', np.RankWarning)
 
 # Set the top and bottom points of the region of interest as a fraction of the frame (measured from the top)
 top_point_multiplier = 0.25
@@ -43,12 +47,12 @@ while cap.isOpened():
     img_recolor_edges = detectEdges(img_recolor)
 
     # Apply crop
-    img_edges_crop, crop_boundary_coords_G, midpoint_G = polygonMask(img_edges, top_point_multiplier, bottom_point_multiplier)
-    img_recolor_edges_crop, crop_boundary_coords_GC, midpoint_GC = polygonMask(img_recolor_edges, top_point_multiplier, bottom_point_multiplier)
+    (img_edges_crop, crop_boundary_coords, midpoint) = polygonMask(img_edges, top_point_multiplier, bottom_point_multiplier)
+    (img_recolor_edges_crop, _, _) = polygonMask(img_recolor_edges, top_point_multiplier, bottom_point_multiplier)
 
     # Draw crop boundary on overlay
-    drawLines(overlay, crop_boundary_coords_G, (0, 0, 255))
-    drawPointer(overlay, midpoint_G, (0, 0, 255))
+    drawLines(overlay, crop_boundary_coords, (0, 0, 255))
+    drawPointer(overlay, midpoint, (0, 0, 255))
 
     # Geometry only
     try:
@@ -57,7 +61,7 @@ while cap.isOpened():
         # Draw steering value
         drawText(overlay, " G: " + str(int(steering_value_G)), 50, (0, 255, 0))
         g_found = True
-    except:
+    except ValueError:
         # If lane lines are not found
         drawText(overlay, " G: error", 50, (0, 255, 0))
         g_found = False
@@ -69,7 +73,7 @@ while cap.isOpened():
         # Draw steering value
         drawText(overlay, "GC: " + str(int(steering_value_GC)), 10, (0, 255, 255))
         gc_found = True
-    except:
+    except ValueError:
         # If lane lines are not found
         drawText(overlay, "GC: error", 10, (0, 255, 255))
         gc_found = False
@@ -90,11 +94,11 @@ while cap.isOpened():
 
     # Draw detected lane lines
     drawLines(overlay, lane_coords_G, (0, 255, 0))
-    drawPointer(overlay, midpoint_G + steering_value_G, (0, 255, 0))
+    drawPointer(overlay, midpoint + steering_value_G, (0, 255, 0))
     drawLines(overlay, lane_coords_GC, (0, 255, 255))
-    drawPointer(overlay, midpoint_GC + steering_value_GC, (0, 255, 255))
+    drawPointer(overlay, midpoint + steering_value_GC, (0, 255, 255))
     drawLines(overlay, lane_coords_combined, (255, 0, 0))
-    drawPointer(overlay, midpoint_G + steering_value_combined, (255, 0, 0))
+    drawPointer(overlay, midpoint + steering_value_combined, (255, 0, 0))
 
     # Open a new window and display the output image with overlay
     frame_overlay = addOverlay(img, overlay)
