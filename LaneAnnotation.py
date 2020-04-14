@@ -57,7 +57,7 @@ while cap.isOpened():
     # Geometry only
     try:
         # Find lane lines
-        leftLine, rightLine = FindLaneLines(img_edges_crop, top_point_multiplier, 1)
+        leftLine, rightLine = FindLaneLinesHough(img_edges_crop, top_point_multiplier, 1)
 
         # Update lane coords
         if np.count_nonzero(leftLine):
@@ -81,7 +81,7 @@ while cap.isOpened():
     # Geometry + Color
     try:
         # Find lane lines
-        leftLine, rightLine = FindLaneLines(img_recolor_edges_crop, top_point_multiplier, 1)
+        leftLine, rightLine = FindLaneLinesHough(img_recolor_edges_crop, top_point_multiplier, 1)
 
         # Update lane coords
         if np.count_nonzero(leftLine):

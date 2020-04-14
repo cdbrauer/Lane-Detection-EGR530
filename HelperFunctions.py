@@ -1,6 +1,7 @@
 import cv2 as cv
 import numpy as np
 
+# Frame Adjustments ####################################################################################################
 # Find edges in a frame using canny edge detection
 def DetectEdges(frame):
     try:
@@ -16,7 +17,16 @@ def DetectEdges(frame):
     # Return a frame showing all edges
     return frame_edges
 
-# Crop a frame to the region of interest
+# Resize a frame by a scaling factor
+def ResizeFrame(frame, scale_factor):
+    width = int(frame.shape[1] * scale_factor)
+    height = int(frame.shape[0] * scale_factor)
+    dim = (width, height)
+    frame_resized = cv.resize(frame, dim, interpolation = cv.INTER_AREA)
+    return frame_resized
+
+# Masking ##############################################################################################################
+# Crop a frame to a tapered rectangular region
 def RectangularMask(frame, topPos, bottomPos, leftPos, rightPos, leftTaper = 0, rightTaper = 0):
     # Get the dimensions of the frame
     height = frame.shape[0]
@@ -50,7 +60,7 @@ def RectangularMask(frame, topPos, bottomPos, leftPos, rightPos, leftTaper = 0, 
     # Return frame with the mask applied
     return frame_cropped, edgeCoords
 
-# Crop a frame to the region of interest
+# Crop a frame to a triangular region
 def TriangularMask(frame, topPointPos, bottomPointPos):
     # Get the dimensions of the frame
     height = frame.shape[0]
@@ -86,6 +96,7 @@ def TriangularMask(frame, topPointPos, bottomPointPos):
     # Return frame with the mask applied
     return frame_cropped, edgeCoords
 
+# Display ##############################################################################################################
 # Calculate the end coordinates of a line given its slope and y intercept
 def CalculateEndCoordinates(frame, parameters, topPointPos, bottomPointPos):
     slope, intercept = parameters
@@ -106,8 +117,45 @@ def CalculateEndCoordinates(frame, parameters, topPointPos, bottomPointPos):
     coords = np.array([x1, y1, x2, y2])
     return coords
 
+# Draw lines on a frame
+def DrawLines(frame, lineCoords, color = (255, 0, 0)):
+    # Check if any lines are detected
+    if lineCoords is not None:
+        for x1, y1, x2, y2 in lineCoords:
+            # Draw lines between two coordinates with color and 5 thickness
+            cv.line(frame, (int(x1), int(y1)), (int(x2), int(y2)), color, 5)
+    return frame
+
+# Draw text on a frame
+def DrawText(frame, text, pos = 0.95, color = (255, 0, 0)):
+    # Get the dimensions of the frame
+    height = frame.shape[0]
+    # Add text
+    font = cv.FONT_HERSHEY_SIMPLEX
+    cv.putText(frame, str(text), (5,round(height*pos)), font, 1, color, 2, cv.LINE_AA)
+    return frame
+
+# Draw a small pointer at the bottom of a frame
+def DrawPointer(frame, xPos, color = (255, 0, 0)):
+    # Get the dimensions of the frame
+    height = frame.shape[0]
+    width = frame.shape[1]
+    cv.line(frame, (int(width * xPos), height), (int(width * xPos), int(0.95 * height)), color, 5)
+    return frame
+
+def InitOverlay(frame):
+    # Create an image filled with zero intensities with the same dimensions as the frame
+    overlay = np.zeros_like(frame)
+    return overlay
+
+def AddOverlay(frame, overlay):
+    frame_overlay = np.zeros_like(frame)
+    cv.addWeighted(overlay, 0.9, frame, 1, 0, frame_overlay)
+    return frame_overlay
+
+# Line detection algorithms ############################################################################################
 # Find the left and right lane lines by averaging the detected edges
-def FindLaneLines(frame_edges, topPointPos, bottomPointPos):
+def FindLaneLinesHough(frame_edges, topPointPos, bottomPointPos):
     # Get the endpoints of every detected edge
     hough = cv.HoughLinesP(frame_edges, 2, np.pi / 180, 100, np.array([]), minLineLength = 100, maxLineGap = 50)
     # Empty arrays to store the coordinates of the left and right lines
@@ -149,51 +197,34 @@ def FindLaneLines(frame_edges, topPointPos, bottomPointPos):
             else:
                 rightLine = np.array([0, 0, 0, 0])
 
-            # Return the endpoint coords, steer value, and line center positions
+            # Return the endpoint coords
             return leftLine, rightLine
     else:
         raise ValueError("No lines in frame")
 
-# Draw lines on a frame
-def DrawLines(frame, lineCoords, color = (255, 0, 0)):
-    # Check if any lines are detected
-    if lineCoords is not None:
-        for x1, y1, x2, y2 in lineCoords:
-            # Draw lines between two coordinates with color and 5 thickness
-            cv.line(frame, (int(x1), int(y1)), (int(x2), int(y2)), color, 5)
-    return frame
-
-# Draw text on a frame
-def DrawText(frame, text, pos = 0.95, color = (255, 0, 0)):
+# Find a single lane line by fitting a line to the detected contours
+def FindLaneLineFit(frame_edges, laneCoords, topPointPos, bottomPointPos):
     # Get the dimensions of the frame
-    height = frame.shape[0]
-    # Add text
-    font = cv.FONT_HERSHEY_SIMPLEX
-    cv.putText(frame, str(text), (5,round(height*pos)), font, 1, color, 2, cv.LINE_AA)
-    return frame
+    height = frame_edges.shape[0]
+    # width = frame_edges.shape[1]
 
-# Draw a small pointer at the bottom of a frame
-def DrawPointer(frame, xPos, color = (255, 0, 0)):
-    # Get the dimensions of the frame
-    height = frame.shape[0]
-    width = frame.shape[1]
-    cv.line(frame, (int(width * xPos), height), (int(width * xPos), int(0.95 * height)), color, 5)
-    return frame
+    # Update base values for new lane coords
+    laneCoordsNew = np.copy(laneCoords)
 
-def InitOverlay(frame):
-    # Create an image filled with zero intensities with the same dimensions as the frame
-    overlay = np.zeros_like(frame)
-    return overlay
+    # Get line contours
+    lineContours, _ = cv.findContours(frame_edges, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE)
 
-def AddOverlay(frame, overlay):
-    frame_overlay = np.zeros_like(frame)
-    cv.addWeighted(overlay, 0.9, frame, 1, 0, frame_overlay)
-    return frame_overlay
+    # Fit a line to each set of contours
+    vx, vy, x, y = cv.fitLine(lineContours[0], cv.DIST_L2, 0, 0.01, 0.01)
 
-# Resize a frame by a scaling factor
-def ResizeFrame(frame, scale_factor):
-    width = int(frame.shape[1] * scale_factor)
-    height = int(frame.shape[0] * scale_factor)
-    dim = (width, height)
-    frame_resized = cv.resize(frame, dim, interpolation = cv.INTER_AREA)
-    return frame_resized
+    # Find line y coords
+    y1 = topPointPos * height
+    y2 = bottomPointPos * height
+
+    # If slope is in the expected range (10deg to 80deg), find line x coords and save new lane coords
+    if (abs(vy / vx) > 0.36) and (abs(vy / vx) < 5.67):
+        xL1 = int(x + ((y1 - y) * (vx / vy)))
+        xL2 = int(x + ((y2 - y) * (vx / vy)))
+        laneCoordsNew = np.array([xL1, y1, xL2, y2])
+
+    return laneCoordsNew
