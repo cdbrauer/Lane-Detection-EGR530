@@ -9,13 +9,13 @@ warnings.simplefilter('ignore', np.RankWarning)
 
 # Set the top and bottom points of the region of interest as a fraction of the frame (measured from the top)
 topPointMultiplier = 0.25
-bottomPointMultiplier = 0.9
+bottomPointMultiplier = 0.98
 
-# Set the number of bands between the bottom of the frame and the top point multiplier in which to find lane lines
+# Set the number of bands between the bottom point multiplier and the top point multiplier in which to find lane lines
 measurementBands = 5
 
 # Set the rate at which lane positions will update
-laneUpdateRate = 0.1
+lane_update_rate = 0.2
 
 # Variables to store latest coords of detected lane lines
 steeringValue = 0
@@ -28,6 +28,10 @@ cap = cv.VideoCapture("input2.mp4")
 while cap.isOpened():
     # Get current image
     ret, img = cap.read()
+
+    # Get the dimensions of the frame
+    height = img.shape[0]
+    width = img.shape[1]
 
     # Initialize overlay
     overlay = InitOverlay(img)
@@ -42,44 +46,46 @@ while cap.isOpened():
     # img_edges = DetectEdges(img)
     img_edges = DetectEdges(img_recolor)
 
+    # Show edges
+    # cv.imshow("Edges", ResizeFrame(img_edges_crop, 0.8))
+
+    # Find lane lines in each measurement band
     # for b in range(measurementBands):
-    b = 0
+    # b = 0
+    currentTop = 0.9
+    currentBottom = 0.98
 
     # Apply crop
-    img_edges_crop1, cropBoundaryCoords1 = RectangularMask(img_edges, 0.9, 0.99, 0.05, 0.45, 0.2, -0.03)
-    img_edges_crop2, cropBoundaryCoords2 = RectangularMask(img_edges, 0.9, 0.99, 0.55, 0.95, -0.03, 0.2)
-    img_edges_crop = img_edges_crop1 + img_edges_crop2
-
-    # Show edges
-    cv.imshow("Edges", ResizeFrame(img_edges_crop, 0.8))
+    img_edges_cropL, cropBoundaryCoords1 = RectangularMask(img_edges, currentTop, currentBottom, 0.05, 0.45, 0.2, -0.03)
+    img_edges_cropR, cropBoundaryCoords2 = RectangularMask(img_edges, currentTop, currentBottom, 0.55, 0.95, -0.03, 0.2)
+    img_edges_crop = img_edges_cropL + img_edges_cropR
 
     # Draw crop boundary on overlay
     DrawLines(overlay, cropBoundaryCoords1, (0, 0, 255))
     DrawLines(overlay, cropBoundaryCoords2, (0, 0, 255))
     DrawPointer(overlay, 0.5, (0, 0, 255))
 
+    # Find left lane line
     try:
-        # Find lane lines
-        leftLine, rightLine = FindLaneLines(img_edges_crop, 0.9, 1)
+        laneCoordsL = FindLaneLineFit(img_edges_cropL, laneCoords[0], currentTop, currentBottom)
+        laneCoords[0] = lane_update_rate*laneCoordsL + (1-lane_update_rate)*laneCoords[0]
+    except IndexError:
+        print('No contours L')
 
-        # Update lane coords
-        if np.count_nonzero(leftLine):
-            laneCoords[0] = leftLine
-        if np.count_nonzero(rightLine):
-            laneCoords[1] = rightLine
+    # Find right lane line
+    try:
+        laneCoordsR = FindLaneLineFit(img_edges_cropR, laneCoords[1], currentTop, currentBottom)
+        laneCoords[1] = lane_update_rate*laneCoordsR + (1-lane_update_rate)*laneCoords[1]
+    except IndexError:
+        print('No contours R')
 
-        # Calculate steering value based on centers of lines
-        leftLineCenter = (laneCoords[0][0] + laneCoords[0][2]) / (2 * img_edges_crop.shape[1])
-        rightLineCenter = (laneCoords[1][0] + laneCoords[1][2]) / (2 * img_edges_crop.shape[1])
-        steeringValue = (leftLineCenter + rightLineCenter) / 2
+    # Calculate steering value based on centers of lines
+    leftLineCenter = (laneCoords[0][0] + laneCoords[0][2]) / (2 * img_edges_crop.shape[1])
+    rightLineCenter = (laneCoords[1][0] + laneCoords[1][2]) / (2 * img_edges_crop.shape[1])
+    steeringValue = (leftLineCenter + rightLineCenter) / 2
 
-        # Draw steering value
-        DrawText(overlay, "Steering: " + str(round(steeringValue, 3)), 0.98, (0, 255, 0))
-        lines_found = True
-    except ValueError:
-        # If lane lines are not found
-        DrawText(overlay, "Steering: error", 0.98, (0, 255, 0))
-        lines_found = False
+    # Draw steering value
+    DrawText(overlay, "Steering: " + str(round(steeringValue, 3)), 0.98, (0, 255, 0))
 
     # Draw detected lane lines
     DrawLines(overlay, laneCoords, (0, 255, 0))
