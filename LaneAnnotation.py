@@ -15,23 +15,23 @@ bottom_point_multiplier = 0.9
 lane_update_rate = 0.1
 
 # Variables to store latest coords of detected lane lines
-steering_value_G = 0
-lane_coords_G = np.array([[0,0,0,0], [0,0,0,0]])
-steering_value_GC = 0
-lane_coords_GC = np.array([[0,0,0,0], [0,0,0,0]])
-steering_value_combined = 0
-lane_coords_combined = np.array([[0,0,0,0], [0,0,0,0]])
+steeringValueG = 0
+laneCoordsG = np.array([[0, 0, 0, 0], [0, 0, 0, 0]])
+steeringValueGC = 0
+laneCoordsGC = np.array([[0, 0, 0, 0], [0, 0, 0, 0]])
+steeringValueCombined = 0
+laneCoordsCombined = np.array([[0, 0, 0, 0], [0, 0, 0, 0]])
 
 # The video feed is read in as a VideoCapture object
-# cap = cv.VideoCapture("input2.mp4")
-cap = cv.VideoCapture(0)
+cap = cv.VideoCapture("input2.mp4")
+# cap = cv.VideoCapture(0)
 
 while cap.isOpened():
     # Get current image
     ret, img = cap.read()
 
     # Initialize overlay
-    overlay = initOverlay(img)
+    overlay = InitOverlay(img)
 
     # Convert to HSV and isolate yellow and white
     img_hsv = cv.cvtColor(img, cv.COLOR_BGR2HSV)
@@ -39,70 +39,94 @@ while cap.isOpened():
     img_white = cv.inRange(img_hsv, (0, 0, 229), (180, 38, 255))
     img_recolor = img_yellow + img_white
 
-    # Show recolored image
-    # cv.imshow("Recolored Frame", resizeFrame(img_recolor, 0.8))
-
     # Apply edge detection
-    img_edges = detectEdges(img)
-    img_recolor_edges = detectEdges(img_recolor)
+    img_edges = DetectEdges(img)
+    img_recolor_edges = DetectEdges(img_recolor)
 
     # Apply crop
-    (img_edges_crop, crop_boundary_coords, midpoint) = polygonMask(img_edges, top_point_multiplier, bottom_point_multiplier)
-    (img_recolor_edges_crop, _, _) = polygonMask(img_recolor_edges, top_point_multiplier, bottom_point_multiplier)
+    (img_edges_crop, crop_boundary_coords) = TriangularMask(img_edges, top_point_multiplier, bottom_point_multiplier)
+    (img_recolor_edges_crop, _) = TriangularMask(img_recolor_edges, top_point_multiplier, bottom_point_multiplier)
 
     # Draw crop boundary on overlay
-    drawLines(overlay, crop_boundary_coords, (0, 0, 255))
-    drawPointer(overlay, midpoint, (0, 0, 255))
+    DrawLines(overlay, crop_boundary_coords, (0, 0, 255))
+    DrawPointer(overlay, 0.5, (0, 0, 255))
+
+    # Show recolored image
+    # cv.imshow("Edges", ResizeFrame(img_edges_crop, 0.8))
 
     # Geometry only
     try:
         # Find lane lines
-        lane_coords_G, steering_value_G = findLaneLines(img_edges_crop, top_point_multiplier)
+        leftLine, rightLine = FindLaneLines(img_edges_crop, top_point_multiplier, 1)
+
+        # Update lane coords
+        if np.count_nonzero(leftLine):
+            laneCoordsG[0] = leftLine
+        if np.count_nonzero(rightLine):
+            laneCoordsG[1] = rightLine
+
+        # Calculate steering value based on centers of lines
+        leftLineCenter = (laneCoordsG[0][0] + laneCoordsG[0][2]) / (2 * img_edges_crop.shape[1])
+        rightLineCenter = (laneCoordsG[1][0] + laneCoordsG[1][2]) / (2 * img_edges_crop.shape[1])
+        steeringValueG = (leftLineCenter + rightLineCenter) / 2
+
         # Draw steering value
-        drawText(overlay, " G: " + str(int(steering_value_G)), 50, (0, 255, 0))
-        g_found = True
+        DrawText(overlay, " G: " + str(round(steeringValueG, 3)), 0.85, (0, 255, 0))
+        gFound = True
     except ValueError:
         # If lane lines are not found
-        drawText(overlay, " G: error", 50, (0, 255, 0))
-        g_found = False
+        DrawText(overlay, " G: error", 0.85, (0, 255, 0))
+        gFound = False
 
     # Geometry + Color
     try:
         # Find lane lines
-        lane_coords_GC, steering_value_GC = findLaneLines(img_recolor_edges_crop, top_point_multiplier)
+        leftLine, rightLine = FindLaneLines(img_recolor_edges_crop, top_point_multiplier, 1)
+
+        # Update lane coords
+        if np.count_nonzero(leftLine):
+            laneCoordsGC[0] = leftLine
+        if np.count_nonzero(rightLine):
+            laneCoordsGC[1] = rightLine
+
+        # Calculate steering value based on centers of lines
+        leftLineCenter = (laneCoordsGC[0][0] + laneCoordsGC[0][2]) / (2 * img_edges_crop.shape[1])
+        rightLineCenter = (laneCoordsGC[1][0] + laneCoordsGC[1][2]) / (2 * img_edges_crop.shape[1])
+        steeringValueGC = (leftLineCenter + rightLineCenter) / 2
+
         # Draw steering value
-        drawText(overlay, "GC: " + str(int(steering_value_GC)), 10, (0, 255, 255))
-        gc_found = True
+        DrawText(overlay, "GC: " + str(round(steeringValueGC, 3)), 0.9, (0, 255, 255))
+        gcFound = True
     except ValueError:
         # If lane lines are not found
-        drawText(overlay, "GC: error", 10, (0, 255, 255))
-        gc_found = False
+        DrawText(overlay, "GC: error", 0.9, (0, 255, 255))
+        gcFound = False
 
     # Combine G and GC results
-    if g_found and gc_found:
-        lane_coords_combined = lane_update_rate * (0.3 * lane_coords_G + 0.7 * lane_coords_GC) + (1 - lane_update_rate) * lane_coords_combined
-        steering_value_combined = lane_update_rate * (0.3 * steering_value_G + 0.7 * steering_value_GC) + (1 - lane_update_rate) * steering_value_combined
-    elif g_found:
-        lane_coords_combined = lane_update_rate * (0.8 * lane_coords_G + 0.2 * lane_coords_GC) + (1 - lane_update_rate) * lane_coords_combined
-        steering_value_combined = lane_update_rate * (0.8 * steering_value_G + 0.2 * steering_value_GC) + (1 - lane_update_rate) * steering_value_combined
-    elif gc_found:
-        lane_coords_combined = lane_update_rate * (0.0 * lane_coords_G + 1.0 * lane_coords_GC) + (1 - lane_update_rate) * lane_coords_combined
-        steering_value_combined = lane_update_rate * (0.0 * steering_value_G + 1.0 * steering_value_GC) + (1 - lane_update_rate) * steering_value_combined
+    if gFound and gcFound:
+        laneCoordsCombined = lane_update_rate * (0.3 * laneCoordsG + 0.7 * laneCoordsGC) + (1 - lane_update_rate) * laneCoordsCombined
+        steeringValueCombined = lane_update_rate * (0.3 * steeringValueG + 0.7 * steeringValueGC) + (1 - lane_update_rate) * steeringValueCombined
+    elif gFound:
+        laneCoordsCombined = lane_update_rate * (0.8 * laneCoordsG + 0.2 * laneCoordsGC) + (1 - lane_update_rate) * laneCoordsCombined
+        steeringValueCombined = lane_update_rate * (0.8 * steeringValueG + 0.2 * steeringValueGC) + (1 - lane_update_rate) * steeringValueCombined
+    elif gcFound:
+        laneCoordsCombined = lane_update_rate * (0.0 * laneCoordsG + 1.0 * laneCoordsGC) + (1 - lane_update_rate) * laneCoordsCombined
+        steeringValueCombined = lane_update_rate * (0.0 * steeringValueG + 1.0 * steeringValueGC) + (1 - lane_update_rate) * steeringValueCombined
 
     # Draw final steering value
-    drawText(overlay, " F: " + str(int(steering_value_combined)), 90, (255, 0, 0))
+    DrawText(overlay, " F: " + str(round(steeringValueCombined, 3)), 0.95, (255, 0, 0))
 
     # Draw detected lane lines
-    drawLines(overlay, lane_coords_G, (0, 255, 0))
-    drawPointer(overlay, midpoint + steering_value_G, (0, 255, 0))
-    drawLines(overlay, lane_coords_GC, (0, 255, 255))
-    drawPointer(overlay, midpoint + steering_value_GC, (0, 255, 255))
-    drawLines(overlay, lane_coords_combined, (255, 0, 0))
-    drawPointer(overlay, midpoint + steering_value_combined, (255, 0, 0))
+    DrawLines(overlay, laneCoordsG, (0, 255, 0))
+    DrawPointer(overlay, steeringValueG, (0, 255, 0))
+    DrawLines(overlay, laneCoordsGC, (0, 255, 255))
+    DrawPointer(overlay, steeringValueGC, (0, 255, 255))
+    DrawLines(overlay, laneCoordsCombined, (255, 0, 0))
+    DrawPointer(overlay, steeringValueCombined, (255, 0, 0))
 
     # Open a new window and display the output image with overlay
-    frame_overlay = addOverlay(img, overlay)
-    cv.imshow("Lane Detection", resizeFrame(frame_overlay, 0.8))
+    frame_overlay = AddOverlay(img, overlay)
+    cv.imshow("Lane Detection", ResizeFrame(frame_overlay, 0.8))
 
     # Read frames by intervals of 10 milliseconds
     # Break out of the while loop when the user presses the 'q' key
