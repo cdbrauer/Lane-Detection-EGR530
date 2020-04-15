@@ -2,24 +2,24 @@
 
 # Import helper functions file
 from HelperFunctions import *
-import warnings
-
-# Suppress output from polyfit warning
-warnings.simplefilter('ignore', np.RankWarning)
 
 # Set the top and bottom points of the region of interest as a fraction of the frame (measured from the top)
-topPointMultiplier = 0.25
+topPointMultiplier = 0.75
 bottomPointMultiplier = 0.98
 
+# Set values for tapering rectangles to compensate for perspective
+taperOuter =  0.14
+taperInner = -0.01
+
 # Set the number of bands between the bottom point multiplier and the top point multiplier in which to find lane lines
-measurementBands = 5
+measurementBands = 3
+bandHeight = 0.075
 
 # Set the rate at which lane positions will update
 lane_update_rate = 0.2
 
 # Variables to store latest coords of detected lane lines
-steeringValue = 0
-laneCoords = np.array([[0, 0, 0, 0], [0, 0, 0, 0]])
+laneCoords = np.ones((measurementBands, 2, 4)) * 640
 
 # The video feed is read in as a VideoCapture object
 cap = cv.VideoCapture("input2.mp4")
@@ -50,46 +50,45 @@ while cap.isOpened():
     # cv.imshow("Edges", ResizeFrame(img_edges_crop, 0.8))
 
     # Find lane lines in each measurement band
-    # for b in range(measurementBands):
-    # b = 0
-    currentTop = 0.9
-    currentBottom = 0.98
+    for b in range(measurementBands):
+        currentBottom = bottomPointMultiplier - (b * bandHeight)
+        currentTop = bottomPointMultiplier - ((b+1) * bandHeight)
 
-    # Apply crop
-    img_edges_cropL, cropBoundaryCoords1 = RectangularMask(img_edges, currentTop, currentBottom, 0.05, 0.45, 0.2, -0.03)
-    img_edges_cropR, cropBoundaryCoords2 = RectangularMask(img_edges, currentTop, currentBottom, 0.55, 0.95, -0.03, 0.2)
-    img_edges_crop = img_edges_cropL + img_edges_cropR
+        # Apply crop
+        img_edges_cropL, cropBoundaryCoords1 = RectangularMask(img_edges, currentTop, currentBottom, 0.05+(b*taperOuter), 0.48-(b*taperInner), taperOuter, taperInner)
+        img_edges_cropR, cropBoundaryCoords2 = RectangularMask(img_edges, currentTop, currentBottom, 0.52+(b*taperInner), 0.95-(b*taperOuter), taperInner, taperOuter)
+        img_edges_crop = img_edges_cropL + img_edges_cropR
 
-    # Draw crop boundary on overlay
-    DrawLines(overlay, cropBoundaryCoords1, (0, 0, 255))
-    DrawLines(overlay, cropBoundaryCoords2, (0, 0, 255))
-    DrawPointer(overlay, 0.5, (0, 0, 255))
+        # Draw crop boundary on overlay
+        DrawLines(overlay, cropBoundaryCoords1, (0, 0, 255))
+        DrawLines(overlay, cropBoundaryCoords2, (0, 0, 255))
+        DrawPointer(overlay, 0.5, (0, 0, 255))
 
-    # Find left lane line
-    try:
-        laneCoordsL = FindLaneLineFit(img_edges_cropL, laneCoords[0], currentTop, currentBottom)
-        laneCoords[0] = lane_update_rate*laneCoordsL + (1-lane_update_rate)*laneCoords[0]
-    except IndexError:
-        print('No contours L')
+        # Find left lane line
+        try:
+            laneCoordsL = FindLaneLineFit(img_edges_cropL, laneCoords[b][0], currentTop, currentBottom)
+            laneCoords[b][0] = lane_update_rate*laneCoordsL + (1-lane_update_rate)*laneCoords[b][0]
+        except IndexError:
+            print('No contours L')
 
-    # Find right lane line
-    try:
-        laneCoordsR = FindLaneLineFit(img_edges_cropR, laneCoords[1], currentTop, currentBottom)
-        laneCoords[1] = lane_update_rate*laneCoordsR + (1-lane_update_rate)*laneCoords[1]
-    except IndexError:
-        print('No contours R')
+        # Find right lane line
+        try:
+            laneCoordsR = FindLaneLineFit(img_edges_cropR, laneCoords[b][1], currentTop, currentBottom)
+            laneCoords[b][1] = lane_update_rate*laneCoordsR + (1-lane_update_rate)*laneCoords[b][1]
+        except IndexError:
+            print('No contours R')
 
-    # Calculate steering value based on centers of lines
-    leftLineCenter = (laneCoords[0][0] + laneCoords[0][2]) / (2 * img_edges_crop.shape[1])
-    rightLineCenter = (laneCoords[1][0] + laneCoords[1][2]) / (2 * img_edges_crop.shape[1])
-    steeringValue = (leftLineCenter + rightLineCenter) / 2
+        # Calculate steering value based on centers of lines
+        leftLineCenter = (laneCoords[b][0][0] + laneCoords[b][0][2]) / (2 * img_edges_crop.shape[1])
+        rightLineCenter = (laneCoords[b][1][0] + laneCoords[b][1][2]) / (2 * img_edges_crop.shape[1])
+        # steeringValue = (leftLineCenter + rightLineCenter) / 2
 
-    # Draw steering value
-    DrawText(overlay, "Steering: " + str(round(steeringValue, 3)), 0.98, (0, 255, 0))
+        # Draw steering value
+        # DrawText(overlay, "Steering: " + str(round(steeringValue, 3)), 0.98, (0, 255, 0))
 
-    # Draw detected lane lines
-    DrawLines(overlay, laneCoords, (0, 255, 0))
-    DrawPointer(overlay, steeringValue, (0, 255, 0))
+        # Draw detected lane lines
+        DrawLines(overlay, laneCoords[b], (0, 255, 0))
+        # DrawPointer(overlay, steeringValue, (0, 255, 0))
 
     # Open a new window and display the output image with overlay
     frame_overlay = AddOverlay(img, overlay)

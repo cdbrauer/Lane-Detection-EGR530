@@ -1,6 +1,13 @@
 # Lane detection code for EGR 530
 
-![Code demo 1](https://github.com/cdbrauer/Lane-Detection-EGR530/raw/master/lane-detection-test-2.png)
+![Code demo 1](https://github.com/cdbrauer/Lane-Detection-EGR530/raw/master/lane-detection-test-3.png)
+
+## LaneAnnotationV2.py
+
+Program to detect lane lines in a webcam feed and highlight them
+
+- Red - search area
+- Green - lines detected by geometry + color
 
 ## LaneAnnotation.py
 

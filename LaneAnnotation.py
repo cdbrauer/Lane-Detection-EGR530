@@ -8,8 +8,8 @@ import warnings
 warnings.simplefilter('ignore', np.RankWarning)
 
 # Set the top and bottom points of the region of interest as a fraction of the frame (measured from the top)
-top_point_multiplier = 0.25
-bottom_point_multiplier = 0.9
+topPointMultiplier = 0.25
+bottomPointMultiplier = 0.9
 
 # Set the rate at which lane positions will update
 lane_update_rate = 0.1
@@ -44,11 +44,11 @@ while cap.isOpened():
     img_recolor_edges = DetectEdges(img_recolor)
 
     # Apply crop
-    (img_edges_crop, crop_boundary_coords) = TriangularMask(img_edges, top_point_multiplier, bottom_point_multiplier)
-    (img_recolor_edges_crop, _) = TriangularMask(img_recolor_edges, top_point_multiplier, bottom_point_multiplier)
+    (img_edges_crop, cropBoundaryCoords) = TriangularMask(img_edges, topPointMultiplier, bottomPointMultiplier)
+    (img_recolor_edges_crop, _) = TriangularMask(img_recolor_edges, topPointMultiplier, bottomPointMultiplier)
 
     # Draw crop boundary on overlay
-    DrawLines(overlay, crop_boundary_coords, (0, 0, 255))
+    DrawLines(overlay, cropBoundaryCoords, (0, 0, 255))
     DrawPointer(overlay, 0.5, (0, 0, 255))
 
     # Show recolored image
@@ -57,7 +57,7 @@ while cap.isOpened():
     # Geometry only
     try:
         # Find lane lines
-        leftLine, rightLine = FindLaneLinesHough(img_edges_crop, top_point_multiplier, 1)
+        leftLine, rightLine = FindLaneLinesHough(img_edges_crop, topPointMultiplier, 1)
 
         # Update lane coords
         if np.count_nonzero(leftLine):
@@ -81,7 +81,7 @@ while cap.isOpened():
     # Geometry + Color
     try:
         # Find lane lines
-        leftLine, rightLine = FindLaneLinesHough(img_recolor_edges_crop, top_point_multiplier, 1)
+        leftLine, rightLine = FindLaneLinesHough(img_recolor_edges_crop, topPointMultiplier, 1)
 
         # Update lane coords
         if np.count_nonzero(leftLine):
