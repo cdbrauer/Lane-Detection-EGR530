@@ -4,24 +4,27 @@
 from HelperFunctions import *
 
 # Set the number of measurement bands
-measurementBands = 5
+measurementBands = 12
+
+# Set the band at which the steering value will be measured
+testBand = 2
 
 # Set the bottom of the first measurement band as a fraction of the frame (measured from the top)
 bottomPointMultiplier = 0.98
 
 # Set the starting values for band height and floating band width
-bandHeight = 0.075
+bandHeight = 0.0375
 bandWidth = 0.08
 
 # Set the scale reduction between subsequent bands
-scaleFalloff = 0.6
+scaleFalloff = 0.8
 
 # Set values for tapering rectangles to compensate for perspective
-taperOuter =  0.14
-taperInner = -0.01
+taperOuter =  0.04
+taperInner = -0.02
 
 # Set the rate at which lane positions will update
-lane_update_rate = 0.2
+lane_update_rate = 0.8
 
 # Variables to store latest coords of detected lane lines
 laneCoords = np.ones((measurementBands, 2, 4)) * 640
@@ -57,10 +60,10 @@ while cap.isOpened():
     # Initial mask location values
     currentBottom = bottomPointMultiplier
     currentTop = bottomPointMultiplier - bandHeight
-    currentLL = 0.05
+    currentLL = 0.08
     currentLR = 0.48
     currentRL = 0.52
-    currentRR = 0.95
+    currentRR = 0.92
 
     # Find lane lines in each measurement band
     for b in range(measurementBands):
@@ -70,9 +73,8 @@ while cap.isOpened():
         img_edges_crop = img_edges_cropL + img_edges_cropR
 
         # Draw crop boundary on overlay
-        DrawLines(overlay, cropBoundaryCoords1, (0, 0, 255))
-        DrawLines(overlay, cropBoundaryCoords2, (0, 0, 255))
-        DrawPointer(overlay, 0.5, (0, 0, 255))
+        # DrawLines(overlay, cropBoundaryCoords1, (0, 0, 255))
+        # DrawLines(overlay, cropBoundaryCoords2, (0, 0, 255))
 
         # Find left lane line
         try:
@@ -101,13 +103,14 @@ while cap.isOpened():
         currentRR = float(laneCoords[b][1][0]/width) + (bandWidth * (scaleFalloff ** b))
 
     # Calculate steering value based on centers of lines
-    leftLineCenter = (laneCoords[0][0][0] + laneCoords[0][0][2]) / (2 * width)
-    rightLineCenter = (laneCoords[0][1][0] + laneCoords[0][1][2]) / (2 * width)
+    leftLineCenter = (laneCoords[testBand][0][0] + laneCoords[testBand][0][2]) / (2 * width)
+    rightLineCenter = (laneCoords[testBand][1][0] + laneCoords[testBand][1][2]) / (2 * width)
     steeringValue = (leftLineCenter + rightLineCenter) / 2
 
     # Draw steering value
     DrawText(overlay, "Steering: " + str(round(steeringValue, 3)), 0.98, (0, 255, 0))
     DrawPointer(overlay, steeringValue, (0, 255, 0))
+    DrawPointer(overlay, 0.5, (0, 0, 255))
 
     # Open a new window and display the output image with overlay
     frame_overlay = AddOverlay(img, overlay)
