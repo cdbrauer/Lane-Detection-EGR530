@@ -6,8 +6,9 @@ from HelperFunctions import *
 # Set the number of measurement bands
 measurementBands = 18
 
-# Set the band at which the steering value will be measured
-testBand = 2
+# Set the range of bands at which the steering value will be measured (inclusive)
+testBandMin = 2 # 3
+testBandMax = 7 # 8
 
 # Set the bottom of the first measurement band as a fraction of the frame (measured from the top)
 bottomPointMultiplier = 0.7
@@ -103,13 +104,14 @@ while cap.isOpened():
         currentRR = float(laneCoords[b][1][0]/width) + (bandWidth * (scaleFalloff ** b))
 
     # Calculate steering value based on centers of lines
-    leftLineCenter = (laneCoords[testBand][0][0] + laneCoords[testBand][0][2]) / (2 * width)
-    rightLineCenter = (laneCoords[testBand][1][0] + laneCoords[testBand][1][2]) / (2 * width)
+    # laneCoords[bands][L/R][x1/y1/x2/y2]
+    leftLineCenter = (np.average(laneCoords[testBandMin:testBandMax+1, 0, 0]) + np.average(laneCoords[testBandMin:testBandMax+1, 0, 2])) / (2 * width)
+    rightLineCenter = (np.average(laneCoords[testBandMin:testBandMax+1, 1, 0]) + np.average(laneCoords[testBandMin:testBandMax+1, 1, 2])) / (2 * width)
     steeringValue = (leftLineCenter + rightLineCenter) / 2
 
     # Draw steering value
     DrawText(overlay, "Steering: " + str(round(steeringValue, 3)), 0.98, (0, 255, 0))
-    DrawPointer(overlay, steeringValue, (0, 255, 0))
+    DrawPointer(overlay, steeringValue, (0, 255, 0), 0.9)
     DrawPointer(overlay, 0.5, (0, 0, 255))
 
     # Open a new window and display the output image with overlay

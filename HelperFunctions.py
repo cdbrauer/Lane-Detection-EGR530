@@ -136,11 +136,13 @@ def DrawText(frame, text, pos = 0.95, color = (255, 0, 0)):
     return frame
 
 # Draw a small pointer at the bottom of a frame
-def DrawPointer(frame, xPos, color = (255, 0, 0)):
+def DrawPointer(frame, xPos, color = (255, 0, 0), topPoint = 0.95):
     # Get the dimensions of the frame
     height = frame.shape[0]
     width = frame.shape[1]
-    cv.line(frame, (int(width * xPos), height), (int(width * xPos), int(0.95 * height)), color, 5)
+    cv.line(frame, (int(width * xPos), height), (int(width * xPos), int(height * topPoint)), color, 5)
+    cv.line(frame, (int(width * xPos), int(topPoint * height)), (int(width * (xPos-0.008)), int(height * (topPoint+0.016))), color, 5)
+    cv.line(frame, (int(width * xPos), int(topPoint * height)), (int(width * (xPos+0.008)), int(height * (topPoint+0.016))), color, 5)
     return frame
 
 def InitOverlay(frame):
