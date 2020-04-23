@@ -4,24 +4,24 @@
 from HelperFunctions import *
 
 # Set the number of measurement bands
-measurementBands = 12
+measurementBands = 18
 
 # Set the band at which the steering value will be measured
 testBand = 2
 
 # Set the bottom of the first measurement band as a fraction of the frame (measured from the top)
-bottomPointMultiplier = 0.98
+bottomPointMultiplier = 0.7
 
 # Set the starting values for band height and floating band width
-bandHeight = 0.0375
-bandWidth = 0.08
+bandHeight = 0.04
+bandWidth = 0.16
 
 # Set the scale reduction between subsequent bands
-scaleFalloff = 0.8
+scaleFalloff = 0.9
 
 # Set values for tapering rectangles to compensate for perspective
-taperOuter =  0.04
-taperInner = -0.02
+taperOuter =  0.01
+taperInner = -0.005
 
 # Set the rate at which lane positions will update
 lane_update_rate = 0.8
@@ -30,7 +30,7 @@ lane_update_rate = 0.8
 laneCoords = np.ones((measurementBands, 2, 4)) * 640
 
 # The video feed is read in as a VideoCapture object
-cap = cv.VideoCapture("input2.mp4")
+cap = cv.VideoCapture("videos/test1.mp4")
 # cap = cv.VideoCapture(0)
 
 while cap.isOpened():
@@ -50,20 +50,20 @@ while cap.isOpened():
     img_white = cv.inRange(img_hsv, (0, 0, 229), (180, 38, 255))
     img_recolor = img_yellow + img_white
 
+    # Show recolored image
+    # cv.imshow("Edges", ResizeFrame(img_recolor, 0.8))
+
     # Apply edge detection
     # img_edges = DetectEdges(img)
     img_edges = DetectEdges(img_recolor)
 
-    # Show edges
-    # cv.imshow("Edges", ResizeFrame(img_edges_crop, 0.8))
-
     # Initial mask location values
     currentBottom = bottomPointMultiplier
     currentTop = bottomPointMultiplier - bandHeight
-    currentLL = 0.08
+    currentLL = 0.0
     currentLR = 0.48
     currentRL = 0.52
-    currentRR = 0.92
+    currentRR = 1.0
 
     # Find lane lines in each measurement band
     for b in range(measurementBands):

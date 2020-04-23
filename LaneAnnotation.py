@@ -23,7 +23,7 @@ steeringValueCombined = 0
 laneCoordsCombined = np.array([[0, 0, 0, 0], [0, 0, 0, 0]])
 
 # The video feed is read in as a VideoCapture object
-cap = cv.VideoCapture("input2.mp4")
+cap = cv.VideoCapture("videos/input2.mp4")
 # cap = cv.VideoCapture(0)
 
 while cap.isOpened():
