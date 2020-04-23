@@ -31,7 +31,7 @@ lane_update_rate = 0.8
 laneCoords = np.ones((measurementBands, 2, 4)) * 640
 
 # The video feed is read in as a VideoCapture object
-cap = cv.VideoCapture("videos/test1.mp4")
+cap = cv.VideoCapture("videos/test4s2.MP4")
 # cap = cv.VideoCapture(0)
 
 while cap.isOpened():
@@ -47,16 +47,19 @@ while cap.isOpened():
 
     # Convert to HSV and isolate yellow and white
     img_hsv = cv.cvtColor(img, cv.COLOR_BGR2HSV)
-    img_yellow = cv.inRange(img_hsv, (20, 39, 64), (35, 255, 255))
-    img_white = cv.inRange(img_hsv, (0, 0, 229), (180, 38, 255))
+    img_yellow = cv.inRange(img_hsv, (16, 39, 64), (35, 255, 255))
+    img_white = cv.inRange(img_hsv, (0, 0, 215), (180, 20, 255))
     img_recolor = img_yellow + img_white
 
     # Show recolored image
-    # cv.imshow("Edges", ResizeFrame(img_recolor, 0.8))
+    # cv.imshow("Recolor", ResizeFrame(img_recolor, 0.8))
 
     # Apply edge detection
     # img_edges = DetectEdges(img)
     img_edges = DetectEdges(img_recolor)
+
+    # Show edges
+    # cv.imshow("Edges", ResizeFrame(img_edges, 0.8))
 
     # Initial mask location values
     currentBottom = bottomPointMultiplier
@@ -116,7 +119,7 @@ while cap.isOpened():
 
     # Open a new window and display the output image with overlay
     frame_overlay = AddOverlay(img, overlay)
-    cv.imshow("Lane Detection", ResizeFrame(frame_overlay, 0.8))
+    cv.imshow("Lane Detection", ResizeFrame(frame_overlay, 1.0))
 
     # Read frames by intervals of 10 milliseconds
     # Break out of the while loop when the user presses the 'q' key
