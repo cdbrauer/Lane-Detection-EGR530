@@ -38,6 +38,9 @@ while cap.isOpened():
     # Get current image
     ret, img = cap.read()
 
+    # Show input image
+    # cv.imshow("Input", ResizeFrame(img, 0.8))
+
     # Get the dimensions of the frame
     height = img.shape[0]
     width = img.shape[1]
@@ -98,6 +101,11 @@ while cap.isOpened():
 
         # Draw detected lane lines
         DrawLines(overlay, laneCoords[b], (0, 255, 0))
+
+        # if b == 0:
+            # cv.imshow("Cropped Edges", ResizeFrame(img_edges_crop, 0.8))
+            # img_lines = AddOverlay(img, overlay)
+            # cv.imshow("Fit Lines", ResizeFrame(img_lines, 0.8))
 
         currentBottom = currentTop
         currentTop = currentTop - bandHeight * (scaleFalloff ** b)
